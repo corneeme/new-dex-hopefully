@@ -829,7 +829,9 @@
     </div>
 
     <script>
-        const API_BASE = '/api';
+        // Detect if running on GitHub Pages or localhost
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = isLocalhost ? '/api' : 'https://pokeapi.co/api/v2';
         let allPokemon = [];
         let allPokemonDetails = {};
         let displayedPokemon = [];
