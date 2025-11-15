@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokédex</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.1);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --text-primary: #1a1a1a;
+            --text-secondary: #666;
+            --shadow: rgba(0, 0, 0, 0.08);
+            --accent: #007aff;
+            --bg-primary: #f5f5f7;
+            --bg-secondary: #ffffff;
+        }
+
+        [data-theme="dark"] {
+            --glass-bg: rgba(0, 0, 0, 0.25);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #f5f5f7;
+            --text-secondary: #a1a1a6;
+            --shadow: rgba(0, 0, 0, 0.4);
+            --accent: #0a84ff;
+            --bg-primary: #1c1c1e;
+            --bg-secondary: #2c2c2e;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            transition: background 0.3s ease;
+        }
+
+        .background-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.2), transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(255, 128, 128, 0.2), transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        header {
+            padding: 12px 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(20px);
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        h1 {
+            font-size: 1.8em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 4px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            max-width: 1200px;
+            margin: 12px auto;
+            padding: 0 16px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-box, select, input {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 180px;
+            max-width: 320px;
+        }
+
+        .search-box:focus, select:focus, input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+        }
+
+        select {
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: none;
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+        }
+
+        .theme-toggle {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            padding: 8px 12px;
+        }
+
+        .tab-container {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 12px 16px;
+        }
+
+        .tab {
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 13px;
+        }
+
+        .tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .tab:hover {
+            transform: translateY(-1px);
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .pokemon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            padding: 16px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .pokemon-card {
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .pokemon-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px var(--shadow);
+        }
+
+        .pokemon-card img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+        }
+
+        .pokemon-number {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .pokemon-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 6px 0;
+            text-transform: capitalize;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 600;
+            margin: 2px;
+            text-transform: uppercase;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            position: sticky;
+            top: 0;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .close-btn {
+            background: none;
+            color: var(--text-primary);
+            font-size: 26px;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .modal-body {
+            padding: 16px;
+        }
+
+        .pokemon-detail-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .pokemon-detail-header img {
+            width: 160px;
+            height: 160px;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+        }
+
+        .pokemon-detail-header h2 {
+            font-size: 1.6em;
+            margin: 8px 0;
+            text-transform: capitalize;
+        }
+
+        .detail-section {
+            margin: 14px 0;
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+        }
+
+        .detail-section h3 {
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-size: 1.1em;
+        }
+
+        .stat-bar {
+            margin: 8px 0;
+        }
+
+        .stat-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .stat-value {
+            font-weight: 600;
+        }
+
+        .stat-progress {
+            height: 6px;
+            background: var(--glass-bg);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .stat-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), #667eea);
+            border-radius: 8px;
+            transition: width 0.4s ease;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .info-item {
+            padding: 8px;
+            background: var(--glass-bg);
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            text-transform: capitalize;
+            font-size: 13px;
+        }
+
+        .moves-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 6px;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .move-item {
+            padding: 6px 10px;
+            background: var(--glass-bg);
+            border-radius: 6px;
+            border: 1px solid var(--glass-border);
+            font-size: 12px;
+            text-transform: capitalize;
+        }
+
+        .evolution-chain {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .evolution-item {
+            text-align: center;
+        }
+
+        .evolution-item img {
+            width: 64px;
+            height: 64px;
+        }
+
+        .evolution-arrow {
+            font-size: 20px;
+            color: var(--text-secondary);
+        }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .compare-slot {
+            padding: 16px;
+            border: 2px dashed var(--glass-border);
+            border-radius: 12px;
+            text-align: center;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .type-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+            gap: 8px;
+        }
+
+        .type-effectiveness {
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .super-effective {
+            background: rgba(76, 175, 80, 0.25);
+            border: 1px solid #4caf50;
+        }
+
+        .not-effective {
+            background: rgba(244, 67, 54, 0.25);
+            border: 1px solid #f44336;
+        }
+
+        .no-effect {
+            background: rgba(158, 158, 158, 0.25);
+            border: 1px solid #9e9e9e;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 32px;
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 3px solid var(--glass-border);
+            border-top: 3px solid var(--accent);
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            animation: spin 1s linear infinite;
+            margin: 16px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .team-builder {
+            max-width: 1000px;
+            margin: 16px auto;
+            padding: 16px;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 14px;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .team-slot {
+            padding: 10px;
+            border-radius: 12px;
+            background: var(--glass-bg);
+            border: 2px dashed var(--glass-border);
+            aspect-ratio: 1 / 1;
+            transition: all 0.2s ease;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .team-slot.filled {
+            border: 2px solid var(--accent);
+        }
+
+        .team-slot:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px var(--shadow);
+        }
+
+        .team-slot .remove-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: #f44336;
+            color: white;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .team-slot.filled:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .type-circle {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin: 0 2px;
+        }
+
+        .team-pokemon {
+            text-align: center;
+        }
+
+        .stat-hexagon-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+
+        .stat-hexagon {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stat-point {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .stat-label-point {
+            position: absolute;
+            font-size: 11px;
+            font-weight: 600;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            white-space: nowrap;
+        }
+
+        .stat-value-display {
+            font-size: 13px;
+            color: var(--accent);
+            margin-top: 2px;
+        }
+
+        .nature-indicator {
+            font-size: 10px;
+            margin-left: 4px;
+        }
+
+        .move-selector-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .selected-moves {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .available-moves {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .move-selector-item {
+            padding: 8px;
+            margin: 4px 0;
+            background: var(--glass-bg);
+            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+        }
+
+        .move-selector-item:hover {
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .move-selector-item.selected {
+            border-color: var(--accent);
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .team-pokemon img {
+            width: 100px;
+            height: 100px;
+        }
+
+        .team-pokemon h3 {
+            margin: 8px 0;
+            text-transform: capitalize;
+            font-size: 1.1em;
+        }
+
+        .nickname-input {
+            width: 100%;
+            margin: 8px 0;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .stat-editor {
+            margin: 12px 0;
+        }
+
+        .stat-edit-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 6px 0;
+            gap: 8px;
+        }
+
+        .stat-edit-row label {
+            flex: 1;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .stat-edit-row input {
+            width: 54px;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .ability-list, .moves-list {
+            max-height: 360px;
+            overflow-y: auto;
+        }
+
+        .ability-item, .move-detail-item {
+            padding: 12px;
+            margin: 8px 0;
+            background: var(--glass-bg);
+            border-radius: 10px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .ability-item h4, .move-detail-item h4 {
+            margin-bottom: 6px;
+            color: var(--accent);
+            text-transform: capitalize;
+            font-size: 1em;
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--glass-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 8px;
+        }
+
+        .type-normal { background: #A8A878; }
+        .type-fire { background: #F08030; }
+        .type-water { background: #6890F0; }
+        .type-electric { background: #F8D030; }
+        .type-grass { background: #78C850; }
+        .type-ice { background: #98D8D8; }
+        .type-fighting { background: #C03028; }
+        .type-poison { background: #A040A0; }
+        .type-ground { background: #E0C068; }
+        .type-flying { background: #A890F0; }
+        .type-psychic { background: #F85888; }
+        .type-bug { background: #A8B820; }
+        .type-rock { background: #B8A038; }
+        .type-ghost { background: #705898; }
+        .type-dragon { background: #7038F8; }
+        .type-dark { background: #705848; }
+        .type-steel { background: #B8B8D0; }
+        .type-fairy { background: #EE99AC; }
+
+        .empty-team-prompt {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 48px 16px;
+            font-size: 13px;
+        }
+
+        .error-message {
+            background: rgba(244, 67, 54, 0.15);
+            border: 1px solid #f44336;
+            color: #f44336;
+            padding: 12px;
+            border-radius: 10px;
+            margin: 16px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        @media (max-width: 768px) {
+            .pokemon-grid {
+                grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .comparison-container, .team-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="background-gradient"></div>
+    
+    <header>
+        <h1>⚡ Pokédex</h1>
+        <p style="color: var(--text-secondary); font-size: 12px;">1000+ Pokémon</p>
+    </header>
+
+    <div class="controls">
+        <input type="text" class="search-box" id="searchInput" placeholder="Search...">
+        <select id="generationFilter">
+            <option value="">All Gens</option>
+            <option value="1">Gen I</option>
+            <option value="2">Gen II</option>
+            <option value="3">Gen III</option>
+            <option value="4">Gen IV</option>
+            <option value="5">Gen V</option>
+            <option value="6">Gen VI</option>
+            <option value="7">Gen VII</option>
+            <option value="8">Gen VIII</option>
+            <option value="9">Gen IX</option>
+        </select>
+        <select id="typeFilter">
+            <option value="">All Types</option>
+            <option value="normal">Normal</option>
+            <option value="fire">Fire</option>
+            <option value="water">Water</option>
+            <option value="electric">Electric</option>
+            <option value="grass">Grass</option>
+            <option value="ice">Ice</option>
+            <option value="fighting">Fighting</option>
+            <option value="poison">Poison</option>
+            <option value="ground">Ground</option>
+            <option value="flying">Flying</option>
+            <option value="psychic">Psychic</option>
+            <option value="bug">Bug</option>
+            <option value="rock">Rock</option>
+            <option value="ghost">Ghost</option>
+            <option value="dragon">Dragon</option>
+            <option value="dark">Dark</option>
+            <option value="steel">Steel</option>
+            <option value="fairy">Fairy</option>
+        </select>
+        <select id="sortFilter">
+            <option value="id">By ID</option>
+            <option value="name">By Name</option>
+        </select>
+        <button class="theme-toggle" onclick="toggleTheme()">🌓</button>
+        <button onclick="clearFilters()">Reset</button>
+    </div>
+
+    <div class="tab-container">
+        <div class="tab active" onclick="switchTab('pokedex')">Pokédex</div>
+        <div class="tab" onclick="switchTab('team')">Team</div>
+        <div class="tab" onclick="switchTab('compare')">Compare</div>
+        <div class="tab" onclick="switchTab('moves')">Moves</div>
+        <div class="tab" onclick="switchTab('abilities')">Abilities</div>
+        <div class="tab" onclick="switchTab('types')">Types</div>
+    </div>
+
+    <div id="pokedex" class="content-section active">
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+        <div class="pokemon-grid" id="pokemonGrid"></div>
+    </div>
+
+    <div id="team" class="content-section">
+        <div class="team-builder">
+            <h2 style="text-align: center; margin-bottom: 6px; font-size: 1.4em;">Team Builder</h2>
+            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 14px; font-size: 12px;">
+                Click empty slots to add Pokémon • Click filled slots to edit
+            </p>
+            <div style="text-align: center; margin-bottom: 14px; display: flex; gap: 8px; justify-content: center;">
+                <button onclick="clearTeam()">Clear</button>
+                <button onclick="exportTeam()">Export</button>
+            </div>
+            <div class="team-grid" id="teamGrid"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="teamEditorModal">
+        <div class="modal-content" style="max-width: 1000px;">
+            <div class="modal-header">
+                <h2 id="editorTitle">Edit Pokémon</h2>
+                <button class="close-btn" onclick="closeTeamEditor()">&times;</button>
+            </div>
+            <div class="modal-body" id="editorBody"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="customModal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-body" style="text-align: center; padding: 24px;">
+                <div id="customModalMessage" style="margin-bottom: 20px; font-size: 1em;"></div>
+                <div id="customModalButtons" style="display: flex; gap: 10px; justify-content: center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="searchModal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>Add Pokémon to Team</h2>
+                <button class="close-btn" onclick="closeSearchModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="slotSearchInput" class="search-box" placeholder="Search Pokémon..." 
+                       style="width: 100%; margin-bottom: 12px;" onkeyup="searchInModal(event)">
+                <div id="slotSearchResults" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="compare" class="content-section">
+        <h2 style="text-align: center; margin-bottom: 6px; font-size: 1.4em;">Compare Pokémon</h2>
+        <p style="text-align: center; color: var(--text-secondary); margin-bottom: 20px; font-size: 12px;">
+            Search and select two Pokémon to compare their stats
+        </p>
+        <div style="max-width: 900px; margin: 0 auto; padding: 0 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                <div>
+                    <input type="text" class="search-box" id="compareSearch1" placeholder="Search Pokémon 1..." 
+                           style="width: 100%; margin-bottom: 8px;" onkeyup="searchForCompare(event, 1)">
+                    <div id="compareResults1" style="max-height: 200px; overflow-y: auto; display: none;"></div>
+                    <div class="compare-slot glass" id="compareSlot1">
+                        <p>Select Pokémon 1</p>
+                    </div>
+                </div>
+                <div>
+                    <input type="text" class="search-box" id="compareSearch2" placeholder="Search Pokémon 2..." 
+                           style="width: 100%; margin-bottom: 8px;" onkeyup="searchForCompare(event, 2)">
+                    <div id="compareResults2" style="max-height: 200px; overflow-y: auto; display: none;"></div>
+                    <div class="compare-slot glass" id="compareSlot2">
+                        <p>Select Pokémon 2</p>
+                    </div>
+                </div>
+            </div>
+            <div id="comparisonResults"></div>
+        </div>
+    </div>
+
+    <div id="moves" class="content-section">
+        <h2 style="text-align: center; margin: 16px; font-size: 1.4em;">Move Database</h2>
+        <input type="text" class="search-box" id="moveSearch" placeholder="Search moves..." style="display: block; margin: 12px auto;">
+        <div class="moves-list" id="movesList" style="max-width: 1000px; margin: 0 auto; padding: 16px;"></div>
+    </div>
+
+    <div id="abilities" class="content-section">
+        <h2 style="text-align: center; margin: 16px; font-size: 1.4em;">Ability Encyclopedia</h2>
+        <input type="text" class="search-box" id="abilitySearch" placeholder="Search abilities..." style="display: block; margin: 12px auto;">
+        <div class="ability-list" id="abilitiesList" style="max-width: 1000px; margin: 0 auto; padding: 16px;"></div>
+    </div>
+
+    <div id="types" class="content-section">
+        <h2 style="text-align: center; margin: 16px; font-size: 1.4em;">Type Effectiveness Chart</h2>
+        <div style="max-width: 1000px; margin: 0 auto; padding: 16px;">
+            <div id="typeChart"></div>
+        </div>
+    </div>
+
+    <div class="modal" id="pokemonModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" style="font-size: 1.3em;"></h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        // Detect if running on GitHub Pages or localhost
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const API_BASE = isLocalhost ? '/api' : 'https://pokeapi.co/api/v2';
+        let allPokemon = [];
+        let allPokemonDetails = {};
+        let displayedPokemon = [];
+        let currentPokemon = null;
+        let compareSlot = 0;
+        let compareData = [null, null];
+        let team = JSON.parse(localStorage.getItem('pokemonTeam')) || [];
+        let allMoves = [];
+        let allAbilities = [];
+        let teamSlotToFill = -1;
+
+        function migrateTeamData() {
+            team = team.map(pokemon => {
+                if (!pokemon) return null;
+                
+                return {
+                    ...pokemon,
+                    evs: pokemon.evs || { hp: 0, attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0 },
+                    ivs: pokemon.ivs || { hp: 31, attack: 31, defense: 31, spAttack: 31, spDefense: 31, speed: 31 },
+                    moves: pokemon.moves || [],
+                    nature: pokemon.nature || 'Hardy',
+                    isShiny: pokemon.isShiny || false,
+                    abilities: pokemon.abilities || [{name: pokemon.ability || 'Unknown', isHidden: false}],
+                    selectedAbility: pokemon.selectedAbility || pokemon.ability || 'Unknown',
+                    availableMoves: pokemon.availableMoves || [],
+                    sprite: pokemon.sprite || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemon.id}.png`,
+                    spriteShiny: pokemon.spriteShiny || `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemon.id}.png`,
+                    baseStats: pokemon.baseStats || { hp: 0, attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0 },
+                    level: pokemon.level || 50
+                };
+            });
+            saveTeam();
+        }
+
+        migrateTeamData();
+
+        const typeEffectiveness = {
+            normal: { rock: 0.5, ghost: 0, steel: 0.5 },
+            fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
+            water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
+            electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
+            grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
+            ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
+            fighting: { normal: 2, ice: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, rock: 2, ghost: 0, dark: 2, steel: 2, fairy: 0.5 },
+            poison: { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0, fairy: 2 },
+            ground: { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, bug: 0.5, rock: 2, steel: 2 },
+            flying: { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5, steel: 0.5 },
+            psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
+            bug: { fire: 0.5, grass: 2, fighting: 0.5, poison: 0.5, flying: 0.5, psychic: 2, ghost: 0.5, dark: 2, steel: 0.5, fairy: 0.5 },
+            rock: { fire: 2, ice: 2, fighting: 0.5, ground: 0.5, flying: 2, bug: 2, steel: 0.5 },
+            ghost: { normal: 0, psychic: 2, ghost: 2, dark: 0.5 },
+            dragon: { dragon: 2, steel: 0.5, fairy: 0 },
+            dark: { fighting: 0.5, psychic: 2, ghost: 2, dark: 0.5, fairy: 0.5 },
+            steel: { fire: 0.5, water: 0.5, electric: 0.5, ice: 2, rock: 2, steel: 0.5, fairy: 2 },
+            fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 }
+        };
+
+        async function fetchWithRetry(url, retries = 3) {
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    if (i === retries - 1) throw error;
+                    await new Promise(resolve => setTimeout(resolve, 500 * (i + 1)));
+                }
+            }
+        }
+
+        async function fetchAllPokemon() {
+            try {
+                const data = await fetchWithRetry(`${API_BASE}/pokemon?limit=1025`);
+                
+                for (let i = 0; i < data.results.length; i++) {
+                    allPokemon.push({
+                        id: i + 1,
+                        name: data.results[i].name,
+                        url: data.results[i].url
+                    });
+                }
+                
+                displayedPokemon = [...allPokemon];
+                displayPokemon();
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                document.getElementById('loading').innerHTML = `
+                    <div class="error-message">
+                        <h3>Unable to load Pokédex</h3>
+                        <p>${error.message}</p>
+                        <button onclick="location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        async function fetchPokemonDetails(pokemonId) {
+            if (allPokemonDetails[pokemonId]) {
+                return allPokemonDetails[pokemonId];
+            }
+            
+            try {
+                const data = await fetchWithRetry(`${API_BASE}/pokemon/${pokemonId}`);
+                allPokemonDetails[pokemonId] = data;
+                return data;
+            } catch (error) {
+                console.error('Error:', error);
+                return null;
+            }
+        }
+
+        async function fetchSpeciesData(pokemonId) {
+            try {
+                return await fetchWithRetry(`${API_BASE}/pokemon-species/${pokemonId}`);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function fetchEvolutionChain(chainId) {
+            try {
+                return await fetchWithRetry(`${API_BASE}/evolution-chain/${chainId}`);
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function displayPokemon() {
+            const grid = document.getElementById('pokemonGrid');
+            grid.innerHTML = '';
+            
+            displayedPokemon.forEach(pokemon => {
+                const card = document.createElement('div');
+                card.className = 'pokemon-card glass';
+                card.onclick = () => {
+                    if (teamSlotToFill >= 0) {
+                        addPokemonToTeam(pokemon.id);
+                    } else {
+                        showPokemonDetails(pokemon.id);
+                    }
+                };
+                
+                const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
+                
+                card.innerHTML = `
+                    <img src="${spriteUrl}" alt="${pokemon.name}" loading="lazy">
+                    <div class="pokemon-number">#${String(pokemon.id).padStart(4, '0')}</div>
+                    <div class="pokemon-name">${pokemon.name}</div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        async function showPokemonDetails(pokemonId) {
+            const details = await fetchPokemonDetails(pokemonId);
+            if (!details) return;
+            
+            currentPokemon = details;
+            const species = await fetchSpeciesData(pokemonId);
+            
+            const modal = document.getElementById('pokemonModal');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+            
+            title.textContent = `#${String(details.id).padStart(4, '0')} ${details.name.toUpperCase()}`;
+            
+            const types = details.types.map(t => 
+                `<span class="type-badge type-${t.type.name}">${t.type.name}</span>`
+            ).join('');
+            
+            const stats = details.stats.map(s => {
+                const statName = s.stat.name.replace('-', ' ');
+                const percentage = (s.base_stat / 255) * 100;
+                return `
+                    <div class="stat-bar">
+                        <div class="stat-label">
+                            <span>${statName.toUpperCase()}</span>
+                            <span class="stat-value">${s.base_stat}</span>
+                        </div>
+                        <div class="stat-progress">
+                            <div class="stat-fill" style="width: ${percentage}%"></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            const totalStats = details.stats.reduce((sum, s) => sum + s.base_stat, 0);
+            const abilities = details.abilities.map(a => 
+                `<span class="info-value">${a.ability.name}${a.is_hidden ? ' (Hidden)' : ''}</span>`
+            ).join(', ');
+            
+            let evolutionHTML = '<p>Loading...</p>';
+            if (species && species.evolution_chain) {
+                const chainId = species.evolution_chain.url.split('/').filter(Boolean).pop();
+                const evolutionData = await fetchEvolutionChain(chainId);
+                if (evolutionData) {
+                    evolutionHTML = buildEvolutionChain(evolutionData.chain);
+                }
+            }
+            
+            const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${details.id}.png`;
+            const shinySpriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${details.id}.png`;
+            
+            const flavorText = species?.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text.replace(/\f/g, ' ') || 'No description';
+            const generation = species?.generation?.name.replace('generation-', 'Gen ').toUpperCase() || 'Unknown';
+            const habitat = species?.habitat?.name || 'Unknown';
+            const captureRate = species?.capture_rate || 'Unknown';
+            
+            body.innerHTML = `
+                <div class="pokemon-detail-header">
+                    <img id="mainSprite" src="${spriteUrl}" alt="${details.name}">
+                    <button onclick="toggleShiny('${spriteUrl}', '${shinySpriteUrl}')" style="margin: 8px;">✨ Shiny</button>
+                    <h2>${details.name}</h2>
+                    <div>${types}</div>
+                    <p style="margin-top: 8px; color: var(--text-secondary); font-size: 12px; font-style: italic;">${flavorText}</p>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Height</div>
+                        <div class="info-value">${(details.height / 10).toFixed(1)} m</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Weight</div>
+                        <div class="info-value">${(details.weight / 10).toFixed(1)} kg</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Generation</div>
+                        <div class="info-value">${generation}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Habitat</div>
+                        <div class="info-value">${habitat}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Capture Rate</div>
+                        <div class="info-value">${captureRate}</div>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Stats (Total: ${totalStats})</h3>
+                    ${stats}
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Abilities</h3>
+                    <p style="font-size: 13px;">${abilities}</p>
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Type Matchups</h3>
+                    ${generateTypeEffectiveness(details.types.map(t => t.type.name))}
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Evolution</h3>
+                    ${evolutionHTML}
+                </div>
+                
+                <div class="detail-section">
+                    <h3>Moves</h3>
+                    <div id="movesDetailContainer">
+                        <div class="loading"><div class="spinner"></div><p>Loading moves...</p></div>
+                    </div>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+            
+            loadDetailedMoves(details.moves.slice(0, 20));
+        }
+
+        async function loadDetailedMoves(moves) {
+            const container = document.getElementById('movesDetailContainer');
+            if (!container) return;
+            
+            let html = '';
+            for (let i = 0; i < moves.length; i++) {
+                const move = moves[i];
+                try {
+                    const moveId = move.move.url.split('/').filter(Boolean).pop();
+                    const moveData = await fetchWithRetry(`${API_BASE}/move/${moveId}`);
+                    
+                    const description = moveData.effect_entries.find(e => e.language.name === 'en')?.short_effect || '';
+                    const damageClass = moveData.damage_class?.name || 'status';
+                    
+                    html += `
+                        <div class="move-detail-item" style="margin: 8px 0;">
+                            <h4 style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>${move.move.name}</span>
+                                <span class="type-badge type-${moveData.type.name}" style="font-size: 10px;">${moveData.type.name}</span>
+                            </h4>
+                            <div style="display: flex; gap: 12px; font-size: 11px; margin: 6px 0; color: var(--text-secondary);">
+                                <span><strong>Power:</strong> ${moveData.power || '—'}</span>
+                                <span><strong>Acc:</strong> ${moveData.accuracy || '—'}</span>
+                                <span><strong>PP:</strong> ${moveData.pp}</span>
+                                <span><strong>Class:</strong> ${damageClass}</span>
+                            </div>
+                            ${description ? `<p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${description}</p>` : ''}
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error(`Error loading move ${move.move.name}:`, error);
+                }
+            }
+            
+            container.innerHTML = html || '<p style="color: var(--text-secondary);">No moves available</p>';
+        }
+
+        function buildEvolutionChain(chain) {
+            let html = '<div class="evolution-chain">';
+            
+            function processChain(evo) {
+                const id = evo.species.url.split('/').filter(Boolean).pop();
+                const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+                
+                html += `
+                    <div class="evolution-item" onclick="showPokemonDetails(${id})" style="cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                        <img src="${spriteUrl}" alt="${evo.species.name}">
+                        <p style="text-transform: capitalize; font-weight: 600; font-size: 12px;">${evo.species.name}</p>
+                        ${evo.evolution_details.length > 0 ? `<p style="font-size: 10px; color: var(--text-secondary);">${getEvolutionMethod(evo.evolution_details[0])}</p>` : ''}
+                    </div>
+                `;
+                
+                if (evo.evolves_to.length > 0) {
+                    html += '<div class="evolution-arrow">→</div>';
+                    evo.evolves_to.forEach((nextEvo, index) => {
+                        if (index > 0) html += '<div class="evolution-arrow">→</div>';
+                        processChain(nextEvo);
+                    });
+                }
+            }
+            
+            processChain(chain);
+            html += '</div>';
+            return html;
+        }
+
+        function getEvolutionMethod(details) {
+            if (details.min_level) return `Lv. ${details.min_level}`;
+            if (details.item) return details.item.name;
+            if (details.trigger.name === 'trade') return 'Trade';
+            if (details.min_happiness) return `Happiness`;
+            return details.trigger.name;
+        }
+
+        function generateTypeEffectiveness(types) {
+            const effectiveness = { superEffective: [], notEffective: [], noEffect: [] };
+            const allTypes = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'];
+            
+            allTypes.forEach(attackType => {
+                let multiplier = 1;
+                types.forEach(defenseType => {
+                    if (typeEffectiveness[attackType] && typeEffectiveness[attackType][defenseType] !== undefined) {
+                        multiplier *= typeEffectiveness[attackType][defenseType];
+                    }
+                });
+                
+                if (multiplier === 0) {
+                    effectiveness.noEffect.push(attackType);
+                } else if (multiplier > 1) {
+                    effectiveness.superEffective.push(attackType);
+                } else if (multiplier < 1) {
+                    effectiveness.notEffective.push(attackType);
+                }
+            });
+            
+            let html = '<div class="type-chart">';
+            
+            effectiveness.superEffective.forEach(type => {
+                html += `<div class="type-effectiveness super-effective">
+                    <span class="type-badge type-${type}">${type}</span>
+                    <div style="font-size: 11px; margin-top: 4px;">Weak to</div>
+                </div>`;
+            });
+            
+            effectiveness.notEffective.forEach(type => {
+                html += `<div class="type-effectiveness not-effective">
+                    <span class="type-badge type-${type}">${type}</span>
+                    <div style="font-size: 11px; margin-top: 4px;">Resists</div>
+                </div>`;
+            });
+            
+            effectiveness.noEffect.forEach(type => {
+                html += `<div class="type-effectiveness no-effect">
+                    <span class="type-badge type-${type}">${type}</span>
+                    <div style="font-size: 11px; margin-top: 4px;">Immune</div>
+                </div>`;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+        function toggleShiny(normalUrl, shinyUrl) {
+            const sprite = document.getElementById('mainSprite');
+            sprite.src = sprite.src === normalUrl ? shinyUrl : normalUrl;
+        }
+
+        const natures = {
+            Hardy: {}, Lonely: {atk: 1.1, def: 0.9}, Brave: {atk: 1.1, spe: 0.9}, Adamant: {atk: 1.1, spa: 0.9}, Naughty: {atk: 1.1, spd: 0.9},
+            Bold: {def: 1.1, atk: 0.9}, Docile: {}, Relaxed: {def: 1.1, spe: 0.9}, Impish: {def: 1.1, spa: 0.9}, Lax: {def: 1.1, spd: 0.9},
+            Timid: {spe: 1.1, atk: 0.9}, Hasty: {spe: 1.1, def: 0.9}, Serious: {}, Jolly: {spe: 1.1, spa: 0.9}, Naive: {spe: 1.1, spd: 0.9},
+            Modest: {spa: 1.1, atk: 0.9}, Mild: {spa: 1.1, def: 0.9}, Quiet: {spa: 1.1, spe: 0.9}, Bashful: {}, Rash: {spa: 1.1, spd: 0.9},
+            Calm: {spd: 1.1, atk: 0.9}, Gentle: {spd: 1.1, def: 0.9}, Sassy: {spd: 1.1, spe: 0.9}, Careful: {spd: 1.1, spa: 0.9}, Quirky: {}
+        };
+
+        let editingTeamSlot = -1;
+
+        function searchTeamPokemon(event) {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            const results = document.getElementById('teamSearchResults');
+            
+            if (searchTerm.length < 2) {
+                results.style.display = 'none';
+                return;
+            }
+            
+            const matches = allPokemon.filter(p => 
+                p.name.toLowerCase().includes(searchTerm)
+            ).slice(0, 8);
+            
+            if (matches.length === 0) {
+                results.style.display = 'none';
+                return;
+            }
+            
+            results.innerHTML = matches.map(p => `
+                <div style="padding: 10px; cursor: pointer; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 10px;" 
+                     onclick="addPokemonToTeamFromSearch(${p.id})">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" 
+                         style="width: 40px; height: 40px;">
+                    <div>
+                        <div style="font-weight: 600; text-transform: capitalize;">${p.name}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">#${String(p.id).padStart(4, '0')}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            results.style.display = 'block';
+        }
+
+        async function addPokemonToTeamFromSearch(pokemonId) {
+            document.getElementById('teamSearchResults').style.display = 'none';
+            document.getElementById('teamSearchInput').value = '';
+            
+            if (team.filter(p => p !== null).length >= 6) {
+                alert('Team is full! Remove a Pokémon first.');
+                return;
+            }
+            
+            const details = await fetchPokemonDetails(pokemonId);
+            if (!details) return;
+            
+            const teamPokemon = {
+                id: pokemonId,
+                name: details.name,
+                nickname: details.name,
+                sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`,
+                spriteShiny: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemonId}.png`,
+                types: details.types.map(t => t.type.name),
+                isShiny: false,
+                moves: [],
+                availableMoves: details.moves.slice(0, 100).map(m => ({name: m.move.name, url: m.move.url})),
+                abilities: details.abilities.map(a => ({name: a.ability.name, isHidden: a.is_hidden})),
+                selectedAbility: details.abilities[0].ability.name,
+                nature: 'Hardy',
+                evs: { hp: 0, attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0 },
+                ivs: { hp: 31, attack: 31, defense: 31, spAttack: 31, spDefense: 31, speed: 31 },
+                baseStats: {
+                    hp: details.stats[0].base_stat,
+                    attack: details.stats[1].base_stat,
+                    defense: details.stats[2].base_stat,
+                    spAttack: details.stats[3].base_stat,
+                    spDefense: details.stats[4].base_stat,
+                    speed: details.stats[5].base_stat
+                },
+                level: 50
+            };
+            
+            const emptySlot = team.findIndex(slot => !slot);
+            if (emptySlot >= 0) {
+                team[emptySlot] = teamPokemon;
+            } else {
+                team.push(teamPokemon);
+            }
+            
+            saveTeam();
+            renderTeam();
+        }
+
+        function renderTeam() {
+            const grid = document.getElementById('teamGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < 6; i++) {
+                const slot = document.createElement('div');
+                slot.className = team[i] ? 'team-slot filled' : 'team-slot';
+                
+                if (team[i]) {
+                    const pokemon = team[i];
+                    const typeCircles = pokemon.types.map(t => {
+                        const colors = {
+                            normal: '#A8A878', fire: '#F08030', water: '#6890F0', electric: '#F8D030',
+                            grass: '#78C850', ice: '#98D8D8', fighting: '#C03028', poison: '#A040A0',
+                            ground: '#E0C068', flying: '#A890F0', psychic: '#F85888', bug: '#A8B820',
+                            rock: '#B8A038', ghost: '#705898', dragon: '#7038F8', dark: '#705848',
+                            steel: '#B8B8D0', fairy: '#EE99AC'
+                        };
+                        return `<span class="type-circle" style="background: ${colors[t]};" title="${t}"></span>`;
+                    }).join('');
+                    
+                    const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
+                    const spriteShinyUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${pokemon.id}.png`;
+                    const sprite = pokemon.isShiny ? spriteShinyUrl : spriteUrl;
+                    
+                    slot.innerHTML = `
+                        <button class="remove-btn" onclick="event.stopPropagation(); removePokemonFromTeam(${i})" title="Remove">&times;</button>
+                        <div class="team-pokemon" onclick="openTeamEditor(${i})" style="cursor: pointer; width: 100%;">
+                            <img src="${sprite}" alt="${pokemon.name}" style="width: 64px; height: 64px; image-rendering: pixelated;">
+                            ${pokemon.isShiny ? '<div style="font-size: 14px; margin-top: -6px;">✨</div>' : ''}
+                            <h3 style="font-size: 0.85em; margin: 4px 0; text-transform: capitalize;">${pokemon.nickname || pokemon.name}</h3>
+                            <div style="margin: 4px 0;">${typeCircles}</div>
+                        </div>
+                    `;
+                } else {
+                    slot.innerHTML = `
+                        <div class="empty-team-prompt" onclick="openSearchModal(${i})" style="cursor: pointer;">
+                            <p>Empty Slot</p>
+                            <p style="margin-top: 8px; font-size: 11px;">Click to add</p>
+                        </div>
+                    `;
+                }
+                
+                grid.appendChild(slot);
+            }
+        }
+
+        let hexagonViewMode = 'stats';
+
+        function calculateStat(base, iv, ev, level, nature, statName) {
+            if (statName === 'hp') {
+                return Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + level + 10;
+            } else {
+                const baseStat = Math.floor(((2 * base + iv + Math.floor(ev / 4)) * level) / 100) + 5;
+                return Math.floor(baseStat * (nature || 1));
+            }
+        }
+
+        function getNatureModifier(nature, stat) {
+            const natureData = natures[nature] || {};
+            const statMap = { attack: 'atk', defense: 'def', spAttack: 'spa', spDefense: 'spd', speed: 'spe' };
+            return natureData[statMap[stat]] || 1;
+        }
+
+        function drawStatHexagon(pokemon, mode) {
+            const stats = {
+                hp: calculateStat(pokemon.baseStats.hp, pokemon.ivs.hp, pokemon.evs.hp, 50, 1, 'hp'),
+                attack: calculateStat(pokemon.baseStats.attack, pokemon.ivs.attack, pokemon.evs.attack, 50, getNatureModifier(pokemon.nature, 'attack'), 'attack'),
+                defense: calculateStat(pokemon.baseStats.defense, pokemon.ivs.defense, pokemon.evs.defense, 50, getNatureModifier(pokemon.nature, 'defense'), 'defense'),
+                spAttack: calculateStat(pokemon.baseStats.spAttack, pokemon.ivs.spAttack, pokemon.evs.spAttack, 50, getNatureModifier(pokemon.nature, 'spAttack'), 'spAttack'),
+                spDefense: calculateStat(pokemon.baseStats.spDefense, pokemon.ivs.spDefense, pokemon.evs.spDefense, 50, getNatureModifier(pokemon.nature, 'spDefense'), 'spDefense'),
+                speed: calculateStat(pokemon.baseStats.speed, pokemon.ivs.speed, pokemon.evs.speed, 50, getNatureModifier(pokemon.nature, 'speed'), 'speed')
+            };
+
+            const displayValues = mode === 'ivs' ? pokemon.ivs : mode === 'evs' ? pokemon.evs : stats;
+            const maxValue = mode === 'ivs' ? 31 : mode === 'evs' ? 252 : 300;
+            const minScale = 0.15;
+
+            const centerX = 175;
+            const centerY = 175;
+            const radius = 100;
+            const angles = [0, 60, 120, 180, 240, 300];
+            const statNames = ['HP', 'Attack', 'Defense', 'Sp.Atk', 'Sp.Def', 'Speed'];
+            const statKeys = ['hp', 'attack', 'defense', 'spAttack', 'spDefense', 'speed'];
+
+            let svg = `<svg class="stat-hexagon" viewBox="0 0 350 350" xmlns="http://www.w3.org/2000/svg">`;
+            
+            for (let i = 0; i <= 5; i++) {
+                const scale = (i / 5);
+                let points = '';
+                angles.forEach((angle, idx) => {
+                    const rad = (angle - 90) * Math.PI / 180;
+                    const x = centerX + (radius * scale) * Math.cos(rad);
+                    const y = centerY + (radius * scale) * Math.sin(rad);
+                    points += `${x},${y} `;
+                });
+                svg += `<polygon points="${points}" fill="none" stroke="var(--glass-border)" stroke-width="1" opacity="${0.3 + scale * 0.4}"/>`;
+            }
+
+            let dataPoints = '';
+            angles.forEach((angle, idx) => {
+                const statKey = statKeys[idx];
+                const value = displayValues[statKey];
+                const rawScale = value / maxValue;
+                const scale = Math.max(minScale, Math.min(rawScale, 1));
+                const rad = (angle - 90) * Math.PI / 180;
+                const x = centerX + (radius * scale) * Math.cos(rad);
+                const y = centerY + (radius * scale) * Math.sin(rad);
+                dataPoints += `${x},${y} `;
+            });
+            svg += `<polygon points="${dataPoints}" fill="rgba(0, 122, 255, 0.2)" stroke="var(--accent)" stroke-width="2"/>`;
+
+            angles.forEach((angle, idx) => {
+                const rad = (angle - 90) * Math.PI / 180;
+                const labelX = centerX + (radius + 45) * Math.cos(rad);
+                const labelY = centerY + (radius + 45) * Math.sin(rad);
+                
+                const natureModifier = getNatureModifier(pokemon.nature, statKeys[idx]);
+                const arrow = natureModifier > 1 ? ' ↑' : natureModifier < 1 ? ' ↓' : '';
+                const arrowColor = natureModifier > 1 ? '#4caf50' : natureModifier < 1 ? '#f44336' : '';
+                
+                svg += `<text x="${labelX}" y="${labelY - 8}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--text-primary)">${statNames[idx]}<tspan fill="${arrowColor}" font-size="10">${arrow}</tspan></text>`;
+                
+                svg += `<text x="${labelX}" y="${labelY + 8}" text-anchor="middle" font-size="13" fill="var(--accent)" font-weight="700">${mode === 'stats' ? stats[statKeys[idx]] : displayValues[statKeys[idx]]}</text>`;
+            });
+
+            svg += `</svg>`;
+            return svg;
+        }
+
+        function openTeamEditor(slotIndex) {
+            editingTeamSlot = slotIndex;
+            const pokemon = team[slotIndex];
+            if (!pokemon) return;
+            
+            pokemon.evs = pokemon.evs || { hp: 0, attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0 };
+            pokemon.ivs = pokemon.ivs || { hp: 31, attack: 31, defense: 31, spAttack: 31, spDefense: 31, speed: 31 };
+            pokemon.moves = pokemon.moves || [];
+            pokemon.nature = pokemon.nature || 'Hardy';
+            pokemon.isShiny = pokemon.isShiny || false;
+            hexagonViewMode = 'stats';
+            
+            const modal = document.getElementById('teamEditorModal');
+            const title = document.getElementById('editorTitle');
+            const body = document.getElementById('editorBody');
+            
+            title.textContent = `Edit ${pokemon.nickname || pokemon.name}`;
+            
+            const spriteUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokemon.id}.png`;
+            const spriteShinyUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/shiny/${pokemon.id}.png`;
+            const sprite = pokemon.isShiny ? spriteShinyUrl : spriteUrl;
+            
+            const abilityOptions = (pokemon.abilities || [{name: 'Unknown'}]).map(a => 
+                `<option value="${a.name}" ${a.name === pokemon.selectedAbility ? 'selected' : ''}>${a.name}${a.isHidden ? ' (Hidden)' : ''}</option>`
+            ).join('');
+            
+            const natureOptions = Object.keys(natures).map(n => 
+                `<option value="${n}" ${n === pokemon.nature ? 'selected' : ''}>${n}</option>`
+            ).join('');
+
+            const selectedMoves = pokemon.moves || [];
+            const availableMoves = (pokemon.availableMoves || []).filter(m => !selectedMoves.includes(m.name));
+            
+            body.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <div style="text-align: center; margin-bottom: 16px;">
+                            <img src="${sprite}" alt="${pokemon.name}" style="width: 96px; height: 96px; image-rendering: pixelated;">
+                            <div style="margin-top: 8px;">
+                                <label style="display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="shinyToggle" ${pokemon.isShiny ? 'checked' : ''} onchange="toggleTeamShiny()">
+                                    <span>✨ Shiny</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Nickname:</label>
+                            <input type="text" id="teamNickname" value="${pokemon.nickname || pokemon.name}" 
+                                   style="width: 100%;" placeholder="${pokemon.name}">
+                        </div>
+                        
+                        <div class="detail-section">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Ability:</label>
+                            <select id="teamAbility" style="width: 100%;">
+                                ${abilityOptions}
+                            </select>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <label style="display: block; margin-bottom: 6px; font-weight: 600;">Nature:</label>
+                            <select id="teamNature" style="width: 100%;" onchange="updateHexagon()">
+                                ${natureOptions}
+                            </select>
+                        </div>
+
+                    </div>
+
+                    <div>
+                        <div class="detail-section">
+                            <h3>Moves (${selectedMoves.length}/4)</h3>
+                            <div id="selectedMovesContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+                                ${[0, 1, 2, 3].map(slotIndex => {
+                                    const moveName = selectedMoves[slotIndex];
+                                    if (moveName) {
+                                        return `<div class="move-selector-item selected" onclick="removeMove('${moveName}')" style="cursor: pointer;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span style="text-transform: capitalize; font-weight: 600; font-size: 12px;">${moveName.replace('-', ' ')}</span>
+                                                <span style="color: #f44336;">✕</span>
+                                            </div>
+                                        </div>`;
+                                    } else {
+                                        return `<div style="padding: 10px; border: 2px dashed var(--glass-border); border-radius: 8px; min-height: 40px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); font-size: 11px;">Empty</div>`;
+                                    }
+                                }).join('')}
+                            </div>
+                        </div>
+
+                        <div class="detail-section">
+                            <h3>Available Moves</h3>
+                            <input type="text" id="moveSearchInput" placeholder="Search moves..." 
+                                   style="width: 100%; margin-bottom: 8px;" onkeyup="filterMoves()">
+                            <div id="availableMovesContainer" class="available-moves">
+                                <p style="font-size: 11px; color: var(--text-secondary);">Loading moves...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="detail-section" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0;">Stats at Lv.50</h3>
+                        <div style="display: flex; gap: 4px;">
+                            <button onclick="switchStatTab('stats')" id="btn-stat-tab-stats" style="font-size: 11px; padding: 4px 10px; background: var(--accent);">Stats</button>
+                            <button onclick="switchStatTab('ivs')" id="btn-stat-tab-ivs" style="font-size: 11px; padding: 4px 10px; background: var(--text-secondary);">IVs</button>
+                            <button onclick="switchStatTab('evs')" id="btn-stat-tab-evs" style="font-size: 11px; padding: 4px 10px; background: var(--text-secondary);">EVs</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start;">
+                        <div id="hexagonContainer" class="stat-hexagon-container">
+                            ${drawStatHexagon(pokemon, 'stats')}
+                        </div>
+                        
+                        <div>
+                            <div id="stat-tab-stats" style="display: block;">
+                                <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
+                                    These are the calculated stats at level 50 based on base stats, IVs, EVs, and nature.
+                                    Use the IVs and EVs tabs to customize individual values.
+                                </p>
+                            </div>
+                            
+                            <div id="stat-tab-ivs" style="display: none;">
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                    <div class="stat-edit-row">
+                                        <label>HP:</label>
+                                        <input type="number" id="iv-hp" min="0" max="31" value="${pokemon.ivs.hp}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Attack:</label>
+                                        <input type="number" id="iv-attack" min="0" max="31" value="${pokemon.ivs.attack}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Defense:</label>
+                                        <input type="number" id="iv-defense" min="0" max="31" value="${pokemon.ivs.defense}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Sp. Atk:</label>
+                                        <input type="number" id="iv-spAttack" min="0" max="31" value="${pokemon.ivs.spAttack}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Sp. Def:</label>
+                                        <input type="number" id="iv-spDefense" min="0" max="31" value="${pokemon.ivs.spDefense}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Speed:</label>
+                                        <input type="number" id="iv-speed" min="0" max="31" value="${pokemon.ivs.speed}" onchange="updateHexagon()">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div id="stat-tab-evs" style="display: none;">
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                                    <div class="stat-edit-row">
+                                        <label>HP:</label>
+                                        <input type="number" id="ev-hp" min="0" max="252" step="4" value="${pokemon.evs.hp}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Attack:</label>
+                                        <input type="number" id="ev-attack" min="0" max="252" step="4" value="${pokemon.evs.attack}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Defense:</label>
+                                        <input type="number" id="ev-defense" min="0" max="252" step="4" value="${pokemon.evs.defense}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Sp. Atk:</label>
+                                        <input type="number" id="ev-spAttack" min="0" max="252" step="4" value="${pokemon.evs.spAttack}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Sp. Def:</label>
+                                        <input type="number" id="ev-spDefense" min="0" max="252" step="4" value="${pokemon.evs.spDefense}" onchange="updateHexagon()">
+                                    </div>
+                                    <div class="stat-edit-row">
+                                        <label>Speed:</label>
+                                        <input type="number" id="ev-speed" min="0" max="252" step="4" value="${pokemon.evs.speed}" onchange="updateHexagon()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button onclick="saveTeamEdits()" style="flex: 1;">Save Changes</button>
+                    <button onclick="closeTeamEditor()" style="flex: 1; background: var(--text-secondary);">Cancel</button>
+                </div>
+            `;
+            
+            modal.classList.add('active');
+            loadDetailedMoves(pokemon.availableMoves);
+        }
+
+        async function loadDetailedMoves(availableMoves) {
+            const container = document.getElementById('availableMovesContainer');
+            if (!container) return;
+            
+            container.innerHTML = '<p style="font-size: 11px; color: var(--text-secondary);">Loading moves...</p>';
+            
+            const moveDetailsHtml = [];
+            const movesToLoad = availableMoves.slice(0, 50);
+            
+            for (const move of movesToLoad) {
+                try {
+                    const response = await fetch(`/api/move/${move.name}`);
+                    const moveData = await response.json();
+                    
+                    const damageClass = moveData.damage_class?.name || 'status';
+                    const description = moveData.effect_entries.find(e => e.language.name === 'en')?.short_effect || 
+                                       moveData.flavor_text_entries.find(e => e.language.name === 'en')?.flavor_text || 
+                                       'No description';
+                    
+                    moveDetailsHtml.push(`
+                        <div class="move-selector-item" onclick="addMove('${move.name}')" data-move-name="${move.name}" style="margin-bottom: 8px; cursor: pointer;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="text-transform: capitalize; font-weight: 600; font-size: 12px;">${move.name.replace('-', ' ')}</span>
+                                <span class="type-badge type-${moveData.type.name}" style="font-size: 10px;">${moveData.type.name}</span>
+                            </div>
+                            <div style="display: flex; gap: 12px; font-size: 10px; color: var(--text-secondary); margin-bottom: 4px;">
+                                <span><strong>Power:</strong> ${moveData.power || '—'}</span>
+                                <span><strong>Acc:</strong> ${moveData.accuracy || '—'}</span>
+                                <span><strong>PP:</strong> ${moveData.pp}</span>
+                                <span><strong>Class:</strong> ${damageClass}</span>
+                            </div>
+                            <p style="font-size: 10px; color: var(--text-secondary); margin: 0;">${description}</p>
+                        </div>
+                    `);
+                } catch (error) {
+                    console.error(`Error loading move ${move.name}:`, error);
+                }
+            }
+            
+            container.innerHTML = moveDetailsHtml.join('');
+        }
+
+        function switchStatTab(tab) {
+            hexagonViewMode = tab;
+            updateHexagon();
+            
+            document.getElementById('stat-tab-stats').style.display = tab === 'stats' ? 'block' : 'none';
+            document.getElementById('stat-tab-ivs').style.display = tab === 'ivs' ? 'block' : 'none';
+            document.getElementById('stat-tab-evs').style.display = tab === 'evs' ? 'block' : 'none';
+            
+            document.getElementById('btn-stat-tab-stats').style.background = tab === 'stats' ? 'var(--accent)' : 'var(--text-secondary)';
+            document.getElementById('btn-stat-tab-ivs').style.background = tab === 'ivs' ? 'var(--accent)' : 'var(--text-secondary)';
+            document.getElementById('btn-stat-tab-evs').style.background = tab === 'evs' ? 'var(--accent)' : 'var(--text-secondary)';
+        }
+
+        function updateHexagon() {
+            const pokemon = team[editingTeamSlot];
+            if (!pokemon) return;
+            
+            pokemon.nature = document.getElementById('teamNature').value;
+            
+            const ivHp = document.getElementById('iv-hp');
+            const ivAttack = document.getElementById('iv-attack');
+            const ivDefense = document.getElementById('iv-defense');
+            const ivSpAttack = document.getElementById('iv-spAttack');
+            const ivSpDefense = document.getElementById('iv-spDefense');
+            const ivSpeed = document.getElementById('iv-speed');
+            
+            const evHp = document.getElementById('ev-hp');
+            const evAttack = document.getElementById('ev-attack');
+            const evDefense = document.getElementById('ev-defense');
+            const evSpAttack = document.getElementById('ev-spAttack');
+            const evSpDefense = document.getElementById('ev-spDefense');
+            const evSpeed = document.getElementById('ev-speed');
+            
+            if (ivHp) {
+                pokemon.ivs = {
+                    hp: parseInt(ivHp.value) || 31,
+                    attack: parseInt(ivAttack.value) || 31,
+                    defense: parseInt(ivDefense.value) || 31,
+                    spAttack: parseInt(ivSpAttack.value) || 31,
+                    spDefense: parseInt(ivSpDefense.value) || 31,
+                    speed: parseInt(ivSpeed.value) || 31
+                };
+            }
+            
+            if (evHp) {
+                pokemon.evs = {
+                    hp: parseInt(evHp.value) || 0,
+                    attack: parseInt(evAttack.value) || 0,
+                    defense: parseInt(evDefense.value) || 0,
+                    spAttack: parseInt(evSpAttack.value) || 0,
+                    spDefense: parseInt(evSpDefense.value) || 0,
+                    speed: parseInt(evSpeed.value) || 0
+                };
+            }
+            
+            const container = document.getElementById('hexagonContainer');
+            if (container) {
+                container.innerHTML = drawStatHexagon(pokemon, hexagonViewMode);
+            }
+        }
+
+        function addMove(moveName) {
+            const pokemon = team[editingTeamSlot];
+            if (!pokemon) return;
+            if (pokemon.moves.length >= 4) {
+                showAlert('Maximum 4 moves allowed!');
+                return;
+            }
+            if (!pokemon.moves.includes(moveName)) {
+                pokemon.moves.push(moveName);
+                openTeamEditor(editingTeamSlot);
+            }
+        }
+
+        function removeMove(moveName) {
+            const pokemon = team[editingTeamSlot];
+            if (!pokemon) return;
+            pokemon.moves = pokemon.moves.filter(m => m !== moveName);
+            openTeamEditor(editingTeamSlot);
+        }
+
+        function filterMoves() {
+            const pokemon = team[editingTeamSlot];
+            if (!pokemon) return;
+            
+            const searchTerm = document.getElementById('moveSearchInput').value.toLowerCase();
+            const availableMoves = (pokemon.availableMoves || []).filter(m => 
+                !pokemon.moves.includes(m.name) && m.name.toLowerCase().includes(searchTerm)
+            );
+            
+            if (availableMoves.length === 0) {
+                document.getElementById('availableMovesContainer').innerHTML = 
+                    '<p style="color: var(--text-secondary); font-size: 12px;">No moves found</p>';
+            } else {
+                loadDetailedMoves(availableMoves.slice(0, 30));
+            }
+        }
+
+        function closeTeamEditor() {
+            document.getElementById('teamEditorModal').classList.remove('active');
+        }
+
+        function toggleTeamShiny() {
+            const pokemon = team[editingTeamSlot];
+            if (pokemon) {
+                pokemon.isShiny = document.getElementById('shinyToggle').checked;
+                const img = document.querySelector('#teamEditorModal img');
+                img.src = pokemon.isShiny ? pokemon.spriteShiny : pokemon.sprite;
+            }
+        }
+
+        function saveTeamEdits() {
+            const pokemon = team[editingTeamSlot];
+            if (!pokemon) return;
+            
+            pokemon.nickname = document.getElementById('teamNickname').value || pokemon.name;
+            pokemon.selectedAbility = document.getElementById('teamAbility').value;
+            pokemon.nature = document.getElementById('teamNature').value;
+            
+            pokemon.ivs = {
+                hp: parseInt(document.getElementById('iv-hp').value) || 31,
+                attack: parseInt(document.getElementById('iv-attack').value) || 31,
+                defense: parseInt(document.getElementById('iv-defense').value) || 31,
+                spAttack: parseInt(document.getElementById('iv-spAttack').value) || 31,
+                spDefense: parseInt(document.getElementById('iv-spDefense').value) || 31,
+                speed: parseInt(document.getElementById('iv-speed').value) || 31
+            };
+            
+            pokemon.evs = {
+                hp: parseInt(document.getElementById('ev-hp').value) || 0,
+                attack: parseInt(document.getElementById('ev-attack').value) || 0,
+                defense: parseInt(document.getElementById('ev-defense').value) || 0,
+                spAttack: parseInt(document.getElementById('ev-spAttack').value) || 0,
+                spDefense: parseInt(document.getElementById('ev-spDefense').value) || 0,
+                speed: parseInt(document.getElementById('ev-speed').value) || 0
+            };
+            
+            saveTeam();
+            renderTeam();
+            closeTeamEditor();
+        }
+
+        let pendingConfirmAction = null;
+
+        function showConfirm(message, onConfirm) {
+            const modal = document.getElementById('customModal');
+            const messageEl = document.getElementById('customModalMessage');
+            const buttonsEl = document.getElementById('customModalButtons');
+            
+            pendingConfirmAction = onConfirm;
+            
+            messageEl.textContent = message;
+            buttonsEl.innerHTML = `
+                <button onclick="executeConfirmAction()" style="background: #f44336;">Confirm</button>
+                <button onclick="closeCustomModal()" style="background: var(--text-secondary);">Cancel</button>
+            `;
+            modal.classList.add('active');
+        }
+
+        function executeConfirmAction() {
+            closeCustomModal();
+            if (pendingConfirmAction) {
+                pendingConfirmAction();
+                pendingConfirmAction = null;
+            }
+        }
+
+        function showAlert(message) {
+            const modal = document.getElementById('customModal');
+            const messageEl = document.getElementById('customModalMessage');
+            const buttonsEl = document.getElementById('customModalButtons');
+            
+            messageEl.textContent = message;
+            buttonsEl.innerHTML = `<button onclick="closeCustomModal()">OK</button>`;
+            modal.classList.add('active');
+        }
+
+        function closeCustomModal() {
+            document.getElementById('customModal').classList.remove('active');
+        }
+
+        function openSearchModal(slotIndex) {
+            teamSlotToFill = slotIndex;
+            document.getElementById('searchModal').classList.add('active');
+            document.getElementById('slotSearchInput').value = '';
+            document.getElementById('slotSearchResults').innerHTML = '';
+            document.getElementById('slotSearchInput').focus();
+        }
+
+        function closeSearchModal() {
+            document.getElementById('searchModal').classList.remove('active');
+            teamSlotToFill = -1;
+        }
+
+        function searchInModal(event) {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            const results = document.getElementById('slotSearchResults');
+            
+            if (searchTerm.length < 2) {
+                results.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">Type at least 2 characters to search...</div>';
+                return;
+            }
+            
+            const matches = allPokemon.filter(p => 
+                p.name.toLowerCase().includes(searchTerm)
+            ).slice(0, 12);
+            
+            if (matches.length === 0) {
+                results.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No Pokémon found</div>';
+                return;
+            }
+            
+            results.innerHTML = matches.map(p => `
+                <div style="padding: 12px; cursor: pointer; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 12px; transition: background 0.2s;" 
+                     onmouseover="this.style.background='var(--glass-bg)'" 
+                     onmouseout="this.style.background='transparent'"
+                     onclick="addPokemonToSlot(${p.id})">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" 
+                         style="width: 48px; height: 48px;">
+                    <div>
+                        <div style="font-weight: 600; text-transform: capitalize; font-size: 1.1em;">${p.name}</div>
+                        <div style="font-size: 11px; color: var(--text-secondary);">#${String(p.id).padStart(4, '0')}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addPokemonToSlot(pokemonId) {
+            const slotIndex = teamSlotToFill;
+            console.log('Adding Pokemon to slot:', slotIndex, 'Pokemon ID:', pokemonId);
+            closeSearchModal();
+            
+            if (slotIndex < 0 || slotIndex > 5) {
+                console.error('Invalid slot index:', slotIndex);
+                return;
+            }
+            
+            const details = await fetchPokemonDetails(pokemonId);
+            if (!details) {
+                console.error('Failed to fetch Pokemon details for ID:', pokemonId);
+                return;
+            }
+            
+            console.log('Fetched Pokemon details:', details.name);
+            
+            const teamPokemon = {
+                id: pokemonId,
+                name: details.name,
+                nickname: details.name,
+                sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokemonId}.png`,
+                spriteShiny: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/${pokemonId}.png`,
+                types: details.types.map(t => t.type.name),
+                isShiny: false,
+                moves: [],
+                availableMoves: details.moves.slice(0, 100).map(m => ({name: m.move.name, url: m.move.url})),
+                abilities: details.abilities.map(a => ({name: a.ability.name, isHidden: a.is_hidden})),
+                selectedAbility: details.abilities[0].ability.name,
+                nature: 'Hardy',
+                evs: { hp: 0, attack: 0, defense: 0, spAttack: 0, spDefense: 0, speed: 0 },
+                ivs: { hp: 31, attack: 31, defense: 31, spAttack: 31, spDefense: 31, speed: 31 },
+                baseStats: {
+                    hp: details.stats[0].base_stat,
+                    attack: details.stats[1].base_stat,
+                    defense: details.stats[2].base_stat,
+                    spAttack: details.stats[3].base_stat,
+                    spDefense: details.stats[4].base_stat,
+                    speed: details.stats[5].base_stat
+                },
+                level: 50
+            };
+            
+            console.log('Created team Pokemon object:', teamPokemon);
+            team[slotIndex] = teamPokemon;
+            console.log('Team after adding:', team);
+            saveTeam();
+            renderTeam();
+            console.log('Team saved and rendered');
+        }
+
+        function removePokemonFromTeam(index) {
+            showConfirm(`Remove ${team[index]?.nickname || team[index]?.name}?`, () => {
+                team[index] = null;
+                saveTeam();
+                renderTeam();
+            });
+        }
+
+        function clearTeam() {
+            showConfirm('Clear entire team?', () => {
+                team = [];
+                saveTeam();
+                renderTeam();
+            });
+        }
+
+        function exportTeam() {
+            const exportData = team.filter(p => p !== null).map(p => ({
+                name: p.name,
+                nickname: p.nickname,
+                level: p.level,
+                nature: p.nature,
+                ability: p.ability,
+                evs: p.evs
+            }));
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'pokemon-team.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function saveTeam() {
+            localStorage.setItem('pokemonTeam', JSON.stringify(team));
+        }
+
+        function closeModal() {
+            document.getElementById('pokemonModal').classList.remove('active');
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            
+            if (tabName === 'team') renderTeam();
+            if (tabName === 'moves' && allMoves.length === 0) loadMoves();
+            if (tabName === 'abilities' && allAbilities.length === 0) loadAbilities();
+            if (tabName === 'types') displayTypeChart();
+        }
+
+        async function loadMoves() {
+            try {
+                const data = await fetchWithRetry(`${API_BASE}/move?limit=100`);
+                allMoves = data.results;
+                displayMoves(allMoves);
+            } catch (error) {
+                document.getElementById('movesList').innerHTML = `<div class="error-message">Unable to load moves</div>`;
+            }
+        }
+
+        async function displayMoves(moves) {
+            const container = document.getElementById('movesList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            let html = '';
+            for (let i = 0; i < Math.min(moves.length, 40); i++) {
+                const move = moves[i];
+                try {
+                    const moveId = move.url.split('/').filter(Boolean).pop();
+                    const details = await fetchWithRetry(`${API_BASE}/move/${moveId}`);
+                    const description = details.effect_entries.find(e => e.language.name === 'en')?.short_effect || 'No description';
+                    
+                    html += `
+                        <div class="move-detail-item">
+                            <h4>${move.name} <span class="type-badge type-${details.type.name}">${details.type.name}</span></h4>
+                            <p style="font-size: 12px;"><strong>Power:</strong> ${details.power || '—'} | <strong>Acc:</strong> ${details.accuracy || '—'} | <strong>PP:</strong> ${details.pp}</p>
+                            <p style="font-size: 12px; margin-top: 4px; color: var(--text-secondary);">${description}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+            
+            container.innerHTML = html;
+        }
+
+        async function loadAbilities() {
+            try {
+                const data = await fetchWithRetry(`${API_BASE}/ability?limit=100`);
+                allAbilities = data.results;
+                displayAbilities(allAbilities);
+            } catch (error) {
+                document.getElementById('abilitiesList').innerHTML = `<div class="error-message">Unable to load abilities</div>`;
+            }
+        }
+
+        async function displayAbilities(abilities) {
+            const container = document.getElementById('abilitiesList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            
+            let html = '';
+            for (let i = 0; i < Math.min(abilities.length, 40); i++) {
+                const ability = abilities[i];
+                try {
+                    const abilityId = ability.url.split('/').filter(Boolean).pop();
+                    const details = await fetchWithRetry(`${API_BASE}/ability/${abilityId}`);
+                    const description = details.effect_entries.find(e => e.language.name === 'en')?.short_effect || 'No description';
+                    
+                    html += `
+                        <div class="ability-item">
+                            <h4>${ability.name}</h4>
+                            <p style="font-size: 12px; color: var(--text-secondary);">${description}</p>
+                        </div>
+                    `;
+                } catch (error) {
+                    console.error(error);
+                }
+            }
+            
+            container.innerHTML = html;
+        }
+
+        function displayTypeChart() {
+            const container = document.getElementById('typeChart');
+            const types = Object.keys(typeEffectiveness);
+            
+            let html = '<div style="overflow-x: auto;"><table style="width: 100%; border-collapse: collapse; font-size: 12px;">';
+            html += '<tr><th style="padding: 8px; border: 1px solid var(--glass-border);">Atk \\ Def</th>';
+            
+            types.forEach(type => {
+                html += `<th style="padding: 6px; border: 1px solid var(--glass-border);"><span class="type-badge type-${type}" style="font-size: 9px;">${type}</span></th>`;
+            });
+            html += '</tr>';
+            
+            types.forEach(attackType => {
+                html += `<tr><td style="padding: 6px; border: 1px solid var(--glass-border);"><span class="type-badge type-${attackType}" style="font-size: 9px;">${attackType}</span></td>`;
+                types.forEach(defenseType => {
+                    const effectiveness = typeEffectiveness[attackType][defenseType];
+                    let bgColor = 'var(--glass-bg)';
+                    let text = '1×';
+                    
+                    if (effectiveness === 0) {
+                        bgColor = 'rgba(158, 158, 158, 0.25)';
+                        text = '0×';
+                    } else if (effectiveness === 0.5) {
+                        bgColor = 'rgba(244, 67, 54, 0.25)';
+                        text = '½×';
+                    } else if (effectiveness === 2) {
+                        bgColor = 'rgba(76, 175, 80, 0.25)';
+                        text = '2×';
+                    }
+                    
+                    html += `<td style="padding: 6px; border: 1px solid var(--glass-border); background: ${bgColor}; text-align: center; font-weight: 600;">${text}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</table></div>';
+            container.innerHTML = html;
+        }
+
+        function searchForCompare(event, slot) {
+            const searchTerm = event.target.value.toLowerCase().trim();
+            const resultsEl = document.getElementById(`compareResults${slot}`);
+            
+            if (searchTerm.length < 2) {
+                resultsEl.style.display = 'none';
+                return;
+            }
+            
+            const matches = allPokemon.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                String(p.id).includes(searchTerm)
+            ).slice(0, 8);
+            
+            if (matches.length === 0) {
+                resultsEl.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--text-secondary);">No Pokémon found</div>';
+                resultsEl.style.display = 'block';
+                return;
+            }
+            
+            resultsEl.innerHTML = matches.map(p => `
+                <div style="padding: 10px; cursor: pointer; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; gap: 10px; background: var(--bg-secondary);" 
+                     onmouseover="this.style.background='var(--glass-bg)'" 
+                     onmouseout="this.style.background='var(--bg-secondary)'"
+                     onclick="selectForCompare(${p.id}, ${slot})">
+                    <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${p.id}.png" 
+                         style="width: 40px; height: 40px;">
+                    <div>
+                        <div style="font-weight: 600; text-transform: capitalize;">${p.name}</div>
+                        <div style="font-size: 10px; color: var(--text-secondary);">#${String(p.id).padStart(4, '0')}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            resultsEl.style.display = 'block';
+        }
+
+        async function selectForCompare(pokemonId, slot) {
+            document.getElementById(`compareResults${slot}`).style.display = 'none';
+            document.getElementById(`compareSearch${slot}`).value = '';
+            
+            const details = await fetchPokemonDetails(pokemonId);
+            compareData[slot - 1] = details;
+            
+            const slotElement = document.getElementById(`compareSlot${slot}`);
+            const sprite = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${details.id}.png`;
+            const types = details.types.map(t => 
+                `<span class="type-badge type-${t.type.name}" style="font-size: 9px;">${t.type.name}</span>`
+            ).join('');
+            
+            slotElement.innerHTML = `
+                <img src="${sprite}" style="width: 100px; height: 100px;">
+                <h3 style="text-transform: capitalize; font-size: 1.1em; margin: 8px 0;">${details.name}</h3>
+                <div>${types}</div>
+                <button onclick="clearCompareSlot(${slot})" style="margin-top: 10px; font-size: 11px; background: var(--text-secondary); padding: 6px 12px;">Clear</button>
+            `;
+            
+            if (compareData[0] && compareData[1]) {
+                displayComparison();
+            }
+        }
+
+        function clearCompareSlot(slot) {
+            compareData[slot - 1] = null;
+            document.getElementById(`compareSlot${slot}`).innerHTML = `<p>Select Pokémon ${slot}</p>`;
+            document.getElementById('comparisonResults').innerHTML = '';
+        }
+
+        function displayComparison() {
+            const container = document.getElementById('comparisonResults');
+            const p1 = compareData[0];
+            const p2 = compareData[1];
+            
+            if (!p1 || !p2) return;
+            
+            let html = '<div class="detail-section" style="margin: 16px; max-width: 800px; margin-left: auto; margin-right: auto;"><h3>Stats</h3><div class="info-grid">';
+            
+            p1.stats.forEach((stat, index) => {
+                const p1Value = stat.base_stat;
+                const p2Value = p2.stats[index].base_stat;
+                const statName = stat.stat.name.replace('-', ' ').toUpperCase();
+                
+                html += `
+                    <div class="info-item">
+                        <div class="info-label">${statName}</div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px;">
+                            <span style="${p1Value > p2Value ? 'color: #4caf50; font-weight: 700;' : ''}">${p1.name}: ${p1Value}</span>
+                            <span style="${p2Value > p1Value ? 'color: #4caf50; font-weight: 700;' : ''}">${p2.name}: ${p2Value}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div></div>';
+            container.innerHTML = html;
+        }
+
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            displayedPokemon = allPokemon.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                String(p.id).includes(searchTerm)
+            );
+            applyFilters();
+        });
+
+        document.getElementById('generationFilter').addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.getElementById('typeFilter').value = '';
+                document.getElementById('sortFilter').value = 'id';
+            }
+            applyFilters();
+        });
+        
+        document.getElementById('typeFilter').addEventListener('change', (e) => {
+            if (e.target.value) {
+                document.getElementById('generationFilter').value = '';
+                document.getElementById('sortFilter').value = 'id';
+            }
+            applyFilters();
+        });
+        
+        document.getElementById('sortFilter').addEventListener('change', (e) => {
+            if (e.target.value && e.target.value !== 'id') {
+                document.getElementById('generationFilter').value = '';
+                document.getElementById('typeFilter').value = '';
+            }
+            applySort();
+        });
+
+        document.getElementById('moveSearch').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allMoves.filter(m => m.name.toLowerCase().includes(searchTerm));
+            displayMoves(filtered.slice(0, 40));
+        });
+
+        document.getElementById('abilitySearch').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allAbilities.filter(a => a.name.toLowerCase().includes(searchTerm));
+            displayAbilities(filtered.slice(0, 40));
+        });
+
+        async function applyFilters() {
+            const gen = document.getElementById('generationFilter').value;
+            const type = document.getElementById('typeFilter').value;
+            
+            let filtered = displayedPokemon;
+            
+            if (gen) {
+                const genRanges = {
+                    '1': [1, 151], '2': [152, 251], '3': [252, 386],
+                    '4': [387, 493], '5': [494, 649], '6': [650, 721],
+                    '7': [722, 809], '8': [810, 905], '9': [906, 1025]
+                };
+                const [min, max] = genRanges[gen];
+                filtered = filtered.filter(p => p.id >= min && p.id <= max);
+            }
+            
+            if (type) {
+                const typeFiltered = [];
+                for (const pokemon of filtered.slice(0, 100)) {
+                    const details = await fetchPokemonDetails(pokemon.id);
+                    if (details && details.types.some(t => t.type.name === type)) {
+                        typeFiltered.push(pokemon);
+                    }
+                }
+                filtered = typeFiltered;
+            }
+            
+            displayedPokemon = filtered;
+            displayPokemon();
+        }
+
+        async function applySort() {
+            const sortBy = document.getElementById('sortFilter').value;
+            
+            if (sortBy === 'id') {
+                displayedPokemon.sort((a, b) => a.id - b.id);
+            } else if (sortBy === 'name') {
+                displayedPokemon.sort((a, b) => a.name.localeCompare(b.name));
+            }
+            
+            displayPokemon();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('generationFilter').value = '';
+            document.getElementById('typeFilter').value = '';
+            document.getElementById('sortFilter').value = 'id';
+            displayedPokemon = [...allPokemon];
+            displayPokemon();
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+
+        window.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                closeModal();
+            }
+        });
+
+        renderTeam();
+        fetchAllPokemon();
+    </script>
+</body>
+</html>
